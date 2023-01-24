@@ -5,6 +5,7 @@
 # config folders
 .stravatokens/
 .dbconfig/
+.appconf/
 
 # test outputs
 response/
