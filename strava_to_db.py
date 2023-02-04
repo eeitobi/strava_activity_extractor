@@ -19,12 +19,12 @@ auth_path = os.path.join(os.curdir, '.stravatokens', 'auth.cfg')
 # dbconfig_path = os.path.join(os.curdir, '.dbconfig', 'db.cfg')
 config_path = os.path.join(os.curdir, '.appconf', 'strava_activity_extractor.cfg')
 
-authorization_url = 'http://www.strava.com/oauth/authorize'
-# TODO: is it https://www.strava.com/api/v3/oauth/token?
-token_url = 'https://www.strava.com/oauth/token'
-athlete_url = 'https://www.strava.com/api/v3/athlete'
-activities_url = 'https://www.strava.com/api/v3/athlete/activities'
-detailed_activity_url = 'https://www.strava.com/api/v3/activities/' # needs {id}/ at the end
+# authorization_url = 'http://www.strava.com/oauth/authorize'
+# # TODO: is it https://www.strava.com/api/v3/oauth/token?
+# token_url = 'https://www.strava.com/oauth/token'
+# athlete_url = 'https://www.strava.com/api/v3/athlete'
+# activities_url = 'https://www.strava.com/api/v3/athlete/activities'
+# detailed_activity_url = 'https://www.strava.com/api/v3/activities/' # needs {id}/ at the end
 
 # first run probably needs actual client authentication
 # http://www.strava.com/oauth/authorize?client_id=76303&response_type=code&redirect_uri=http://localhost/exchange_token&approval_prompt=force&scope=read_all,profile:read_all,activity:read_all
@@ -33,7 +33,7 @@ detailed_activity_url = 'https://www.strava.com/api/v3/activities/' # needs {id}
 appconf = configparser.ConfigParser()
 
 
-auth_config = configparser.ConfigParser()
+# auth_config = configparser.ConfigParser()
 
 # create client.cfg
 # client_config = configparser.ConfigParser()
