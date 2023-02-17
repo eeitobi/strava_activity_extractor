@@ -1,6 +1,7 @@
 # python/virtual env
 *cache*/
 .venv/
+.vscode/
 
 # config folders
 .stravatokens/

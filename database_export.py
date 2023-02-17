@@ -6,26 +6,28 @@ from datetime import datetime
 import mariadb_handler
 
 class DatabaseExport():
+    """
+    TODO: class docstring
+    """
     def __init__(self, dbconn: mariadb.Connection=None) -> None:
         self.log = logging.getLogger("main")
         self.dbconn = dbconn
         self.mdb = mariadb_handler.MariaDbHandler()
 
+    
     def update_connection(self, dbconn: mariadb.Connection) -> None:
+        """
+        Set database connection.
+        """
         self.dbconn = dbconn
 
-    def write_activity_data(self) -> None:
-        """
-        Writes activity to database
-        """
 
-
-    def write_detailed_activity_data(self, responsedata: dict, polyline: dict = None) -> None:
+    def write_detailed_activity_data(self, activity: dict, polyline: dict = None) -> bool:
         """
-        Writes data from detailed activity requests to database
+        Writes data from detailed activity requests to database.
+        Returns 'True' if data was written, 'False' if not.
         """
-
-        # set database cursor/name for opertions
+        # set database cursor/name for operations
         try:
             cur = self.dbconn.cursor()
             dbname = self.dbconn.database
@@ -41,63 +43,107 @@ class DatabaseExport():
 
         # check if activity already exists
         activityidcheck = self.mdb.check_mariadb_data(dbtable='activities',
-                                                      id=responsedata['id'])
+                                                      id=activity['id'])
 
         if not activityidcheck:
-            # convert time
-            datetimeutc = datetime.strptime(responsedata['start_date'], '%Y-%m-%dT%H:%M:%SZ')
-            starttimeutc = datetimeutc.strftime('%Y-%m-%d %H:%M:%S')
+            # check required parameters
+            if 'id' in activity:
+                activity_id = activity['id']
+            else:
+                # TODO: log
+                return False
+            if 'sport_type' in activity:
+                activity_type = activity['sport_type']
+            else:
+                # TODO: log
+                return False
+            activity_name = None
+            activity_distance = 0
+            activity_moving_time = 0
+            activity_elapsed_time = 0
+            activity_start_date = None
+            activity_max_speed = None
+            activity_average_heartrate = None
+            activity_max_heartrate = None
+            activity_calories = 0
+
+            # fill variables
+            if 'name' in activity:
+                activity_name = activity['name']
+            if 'distance' in activity:
+                activity_distance = activity['distance']
+            if 'moving_time' in activity:
+                activity_moving_time = activity['moving_time']
+            if 'elapsed_time' in activity:
+                activity_elapsed_time = activity['elapsed_time']    
+            if 'start_date' in activity:
+                # convert time format
+                t = datetime.strptime(activity['start_date'], '%Y-%m-%dT%H:%M:%SZ')
+                activity_start_date = t.strftime('%Y-%m-%d %H:%M:%S')
+            if 'max_speed' in activity:
+                activity_max_speed = activity['max_speed']    
+            if 'average_heartrate' in activity:
+                activity_average_heartrate = activity['average_heartrate']    
+            if 'max_heartrate' in activity:
+                activity_max_heartrate = activity['max_heartrate']    
+            if 'calories' in activity:
+                activity_calories = activity['calories']    
 
             # write activities table
             self.mdb.write_mariadb_data(dbtable='activities',
-                                        id=responsedata['id'],
-                                        name=responsedata['name'],
-                                        type=responsedata['sport_type'],
-                                        distance=responsedata['distance'],
-                                        moving_time=responsedata['moving_time'],
-                                        elapsed_time=responsedata['elapsed_time'],
-                                        start_timestamp_utc=starttimeutc,
-                                        max_speed=responsedata['max_speed'],
-                                        avg_hr=responsedata['average_heartrate'],
-                                        max_hr=responsedata['max_heartrate'],
-                                        calories=responsedata['calories'])
+                                        id=activity_id,
+                                        name=activity_name,
+                                        type=activity_type,
+                                        distance=activity_distance,
+                                        moving_time=activity_moving_time,
+                                        elapsed_time=activity_elapsed_time,
+                                        start_timestamp_utc=activity_start_date,
+                                        max_speed=activity_max_speed,
+                                        avg_hr=activity_average_heartrate,
+                                        max_hr=activity_max_heartrate,
+                                        calories=activity_calories)
 
             # write map data for specific activities
             # TODO: rethink match/case
-            match responsedata['sport_type']:
+            match activity['sport_type']:
                 case 'AlpineSki' | 'Hike' | 'NordicSki' | 'Ride' | 'Run':
                     self.mdb.update_mariadb_data(dbtable='activities',
                                                  searchcolumnname='id',
-                                                 searchcolumnvalue=responsedata['id'],
-                                                 total_elevation_gain=responsedata['total_elevation_gain'],
-                                                 elevation_max=responsedata['elev_high'],
-                                                 elevation_min=responsedata['elev_low'],
-                                                 start_lat=responsedata['start_latlng'][0],
-                                                 start_lon=responsedata['start_latlng'][1],
-                                                 end_lat=responsedata['end_latlng'][0],
-                                                 end_lon=responsedata['end_latlng'][1])
+                                                 searchcolumnvalue=activity['id'],
+                                                 total_elevation_gain=activity['total_elevation_gain'],
+                                                 elevation_max=activity['elev_high'],
+                                                 elevation_min=activity['elev_low'],
+                                                 start_lat=activity['start_latlng'][0],
+                                                 start_lon=activity['start_latlng'][1],
+                                                 end_lat=activity['end_latlng'][0],
+                                                 end_lon=activity['end_latlng'][1])
 
                     # write polyline data
                     if polyline is not None:
-                        
-                        # TODO: not sure if this works
                         for tuple in polyline:
                             # write coordinates table data
                             self.mdb.write_mariadb_data(dbtable='coordinates',
-                                                        activity_id=responsedata['id'],
+                                                        activity_id=activity['id'],
                                                         latitude=tuple[0],
                                                         longitude=tuple[1])
 
                 case _:
                     # no map data for other sport_type
-                    self.log.debug(f"Sport type '{responsedata['sport_type']}' contains no map information.")
+                    self.log.debug(f"Sport type '{activity['sport_type']}' contains no map information.")
 
             # write splits_metric table data
-            for split in responsedata['splits_metric']:
+            for split in activity['splits_metric']:
                 self.mdb.write_mariadb_data(dbtable='splits_metric',
-                                            activity_id=responsedata['id'],
+                                            activity_id=activity['id'],
                                             distance=split['distance'],
                                             moving_time=split['moving_time'],
                                             elevation_difference=split['elevation_difference'],
                                             avg_gas=split['average_grade_adjusted_speed'],
                                             avg_hr=split['average_heartrate'])
+                
+            
+            # successfully added activity to database
+            return True
+
+        # activity already in database        
+        return False

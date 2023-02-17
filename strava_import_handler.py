@@ -1,7 +1,10 @@
 import sys
+import polyline
+import mariadb
 from time import time
 
 import strava_connector as sc
+import database_export as dbe
 
 class StravaImportHandler():
     """
@@ -9,6 +12,7 @@ class StravaImportHandler():
     """
     def __init__(self, stravaconfigpath, clientid, clientsecret, clientscope, redirecturi) -> None:
         self.strava = sc.StravaConnector(stravaconfigpath)
+        self.data = dbe.DatabaseExport()
         self.clientid = clientid
         self.clientsecret = clientsecret
         self.clientscope = clientscope
@@ -44,6 +48,31 @@ class StravaImportHandler():
                                                   secret=self.clientsecret,
                                                   code=clientcode)
 
+
+    def update_db_connection(self, dbConn: mariadb.Connection) -> None:
+        self.data.update_connection(dbConn)
     
     def import_all_available(self) -> None:
         pass
+
+
+    def get_athlete_data(self) -> dict:
+        return self.strava.get_athlete_data()
+    
+    def get_athlete_activity_batch(self, batch_id: int) -> dict:
+        return self.strava.get_athlete_activities(start_epoch=0, page_number=batch_id, activities_per_page=50)
+    
+    def get_detailed_activity(self, activity_id: int) -> dict:
+        
+        d = self.strava.get_detailed_activity(activity_id)
+        
+        # decode detailed polylines
+        poly = d['map']['polyline']
+        # convert to lat, lon tuples
+        mapdata = polyline.decode(poly)
+        print(f"polyline[{activity_id}]: {len(mapdata)}")
+
+        # TODO: verify data completeness or write with NULL
+        self.data.write_detailed_activity_data(activity=d, polyline=mapdata)
+
+        return d

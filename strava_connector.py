@@ -2,6 +2,7 @@ import sys
 import os
 import configparser
 import requests
+import json
 from time import time
 
 class StravaUnauthorizedException(Exception):
@@ -37,6 +38,9 @@ class StravaUndefinedResponseException(Exception):
 
 
 class StravaConnector():
+    """
+    TODO: class docstring
+    """
     def __init__(self, authconfigpath) -> None:
         self.authorization_url = 'http://www.strava.com/oauth/authorize'
         # TODO: is it https://www.strava.com/api/v3/oauth/token?
@@ -130,7 +134,7 @@ class StravaConnector():
         """
         Get new tokens (access_token, refresh_token) from refresh_token if expired.
         """
-        currepoch = int(time.time())
+        currepoch = int(time())
         try:
             # check if access token has timed out
             if currepoch > int(self.auth_config['Strava']['expires_at'], base=10):
@@ -206,13 +210,85 @@ class StravaConnector():
 
 
     def get_athlete_data(self) -> dict:
-        return None
+        """
+        TODO: Get athlete information from Strava API for currently authenticated athlete.
+        """
+        # build header
+        header = {'Authorization': 'Bearer '+ self.auth_config['Strava']['access_token']}
+        
+        # make request
+        r = requests.get(url=self.athlete_url, headers=header)
+        
+        # check response
+        try:
+            athletedata = self.convert_response_to_json(r)
+        except StravaRateLimitException:
+            # TODO do something
+            print(f"Rate limit exception, try again later :)")
+            return None
+        else:
+            # TODO remove debug output
+            print(f"Athlete response error code = {r.status_code}")
+            with open(os.path.join(os.curdir, 'response', 'athlete.json'),'w') as f:
+                json.dump(athletedata, fp=f)
+            
+            return athletedata        
 
 
-    def get_athlete_activities(self) -> dict:
-        return None
+    def get_athlete_activities(self, start_epoch: int, page_number: int, activities_per_page: int, search_reverse: bool = False) -> dict:
+        # build header
+        header = {'Authorization': 'Bearer '+ self.auth_config['Strava']['access_token']}
+        
+        # build request parameters
+        if search_reverse:
+            params = {'before': start_epoch}
+        else:
+            params = {'after': start_epoch}
+        params['page'] = page_number
+        params['per_page'] = activities_per_page
+
+        # make request
+        r = requests.get(url=self.activities_url, params=params, headers=header)
+        
+        # check response
+        try:
+            activitydata = self.convert_response_to_json(r)
+        except StravaRateLimitException:
+            # TODO do something
+            print(f"Rate limit exception, try again later :)")
+            return None
+        else:
+            # TODO: remove debug output
+            print(f"Activities response error code = {r.status_code}")
+            with open(os.path.join(os.curdir, 'response', 'activities.json'),'w') as f:
+                json.dump(activitydata, fp=f)
+        
+            return activitydata
 
 
-    def get_detailed_activity(self) -> dict:
-        return None
+    def get_detailed_activity(self, activity_id) -> dict:
+        # build header
+        header = {'Authorization': 'Bearer '+ self.auth_config['Strava']['access_token']}
+
+        # build request parameters
+        params = {'include_all_efforts': True}
+        urlstring = f"{self.detailed_activity_url}{activity_id}/"
+
+        # make request
+        r = requests.get(url=urlstring, params=params, headers=header)
+
+        # check response
+        try:
+            detailedactivitydata = self.convert_response_to_json(r)
+        except StravaRateLimitException:
+            # TODO do something
+            print(f"Rate limit exception, try again later :)")
+            return None
+        
+        # TODO: remove debug output
+        print(f"Detailed activity {activity_id} response error code = {r.status_code}")
+        with open(os.path.join(os.curdir, 'response', f'det_activities_{activity_id}.json'),'w') as f:
+            json.dump(detailedactivitydata, fp=f)
+        
+        return detailedactivitydata
 
