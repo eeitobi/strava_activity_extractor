@@ -5,14 +5,18 @@ CREATE TABLE `activities` (
   `distance` float,
   `moving_time` int,
   `elapsed_time` int,
-  `total_elevation_gain` float,
-  `elevation_max` float,
-  `elevation_min` float,
   `start_timestamp_utc` datetime,
   `max_speed` float,
   `avg_hr` float,
   `max_hr` float,
-  `calories` int,
+  `calories` int
+);
+
+CREATE TABLE `gpsactivities` (
+  `activity_id` bigint PRIMARY KEY,
+  `total_elevation_gain` float,
+  `elevation_max` float,
+  `elevation_min` float,
   `start_lat` float,
   `start_lon` float,
   `end_lat` float,
@@ -35,6 +39,8 @@ CREATE TABLE `splits_metric` (
   `avg_gas` float,
   `avg_hr` float
 );
+
+ALTER TABLE `gpsactivities` ADD FOREIGN KEY (`activity_id`) REFERENCES `activities` (`id`);
 
 ALTER TABLE `coordinates` ADD FOREIGN KEY (`activity_id`) REFERENCES `activities` (`id`);
 

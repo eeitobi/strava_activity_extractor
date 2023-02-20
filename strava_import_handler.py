@@ -65,14 +65,8 @@ class StravaImportHandler():
     def get_detailed_activity(self, activity_id: int) -> dict:
         
         d = self.strava.get_detailed_activity(activity_id)
-        
-        # decode detailed polylines
-        poly = d['map']['polyline']
-        # convert to lat, lon tuples
-        mapdata = polyline.decode(poly)
-        print(f"polyline[{activity_id}]: {len(mapdata)}")
 
         # TODO: verify data completeness or write with NULL
-        self.data.write_detailed_activity_data(activity=d, polyline=mapdata)
+        self.data.write_detailed_activity_data(d)
 
         return d
