@@ -1,9 +1,5 @@
-import requests
 import os
 import configparser
-import json
-import time
-import polyline
 import mariadb
 import sys
 
@@ -100,14 +96,18 @@ strava_import.update_db_connection(dbconn)
 # print(f"Athlete username: {data['username']}")
 
 # make activities request
-data = strava_import.get_athlete_activity_batch(7)
+# data = strava_import.get_athlete_activity_batch(7)
 
-for act in data:
-    print(f"ActivityName: {act['name']:120}; ActivityId: {act['id']:12}; Timestamp: {act['start_date']}")
+# for act in data:
+#     print(f"ActivityName: {act['name']:120}; ActivityId: {act['id']:12}; Timestamp: {act['start_date']}")
 
-data = strava_import.get_detailed_activity(8330295632)
+# data = strava_import.get_detailed_activity(8330295632)
 
-dbconn.commit()
+# commit moved to database_export!
+# dbconn.commit()
+
+# import all available activities until rate limit is reached
+strava_import.import_all_available()
 
 # close db connection
 dbconn.close()

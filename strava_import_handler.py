@@ -1,7 +1,5 @@
 import sys
-import polyline
 import mariadb
-from time import time
 
 import strava_connector as sc
 import database_export as dbe
@@ -52,16 +50,56 @@ class StravaImportHandler():
     def update_db_connection(self, dbConn: mariadb.Connection) -> None:
         self.data.update_connection(dbConn)
     
+
     def import_all_available(self) -> None:
-        pass
+        """
+        TODO: docstring
+        """
+        # check length of response to find end of activity list
+        batch_id = 1
+        more_data_available = True
+
+        while(more_data_available):
+
+            activity_batch = self.get_athlete_activity_batch(batch_id=batch_id)
+            # Rate limit exception handling is done in the background
+            if activity_batch is None:
+                print(f"Unlucky. Rate limit reached for now.")
+                sys.exit(429)
+            print(f"Activity batch received; BatchId; {batch_id};")
+
+            # check length of response and stop execution of loop
+            if len(activity_batch) < 50:
+                more_data_available = False
+                break
+
+            # before requesting detailed activity, check if already in DB (main activities table)
+            for activity in activity_batch:
+                # check if activity id even exists
+                if 'id' in activity:
+                    print(f"Check if activity already in DB; ActivityId; {activity['id']};")
+                    # check if activity missing
+                    if not self.data.check_activity_in_activities(activity['id']):
+                        # get detailed activity from API and write to DB
+                        detailed_activity = self.get_detailed_activity(activity_id=activity['id'])
+                        # Rate limit exception handling done in background already
+                        if detailed_activity is None:
+                            print(f"Unlucky. Rate limit reached for now.")
+                            sys.exit(429)
+                        print(f"Detailed activity received; ActivityId; {detailed_activity['id']};")               
+                        
+            # update batch ID for next run of while loop            
+            batch_id += 1
 
 
     def get_athlete_data(self) -> dict:
         return self.strava.get_athlete_data()
     
+
     def get_athlete_activity_batch(self, batch_id: int) -> dict:
-        return self.strava.get_athlete_activities(start_epoch=0, page_number=batch_id, activities_per_page=50)
+        return self.strava.get_athlete_activities(page_number=batch_id, activities_per_page=50)
     
+
     def get_detailed_activity(self, activity_id: int) -> dict:
         
         d = self.strava.get_detailed_activity(activity_id)

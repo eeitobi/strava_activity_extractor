@@ -51,7 +51,7 @@ class StravaConnector():
         self.auth_config = configparser.ConfigParser()
         self.auth_config_path = authconfigpath
 
-    def convert_response_to_json(self, r) -> dict:
+    def convert_response_to_json(self, r: requests.Response) -> dict:
 
         # check for ok response (200)
         if r.status_code == requests.codes.ok:
@@ -235,15 +235,15 @@ class StravaConnector():
             return athletedata        
 
 
-    def get_athlete_activities(self, start_epoch: int, page_number: int, activities_per_page: int, search_reverse: bool = False) -> dict:
+    def get_athlete_activities(self, page_number: int, activities_per_page: int, start_from_current: bool = True) -> dict:
         # build header
         header = {'Authorization': 'Bearer '+ self.auth_config['Strava']['access_token']}
         
         # build request parameters
-        if search_reverse:
-            params = {'before': start_epoch}
+        if start_from_current:
+            params = {'before': int(time())}
         else:
-            params = {'after': start_epoch}
+            params = {'after': 0}
         params['page'] = page_number
         params['per_page'] = activities_per_page
 

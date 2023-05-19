@@ -50,6 +50,7 @@ class DatabaseExport():
 
 
         # check if activity already exists
+        # TODO: maybe do this last if already checked before
         activityidcheck = self.check_activity_in_activities(activity_id)
         if not activityidcheck:
             # write essential activity data
@@ -79,12 +80,28 @@ class DatabaseExport():
         if not activityidcheck:
             # write splits_metric table data
             self.write_splits(activity)
+
+        # commit after each successfully written activity
+        self.dbconn.commit()
     
     
     def check_activity_in_activities(self, id: int) -> bool:
         """
         Checks if the given activity ID is already present in the activities database table.
         """
+        # set database cursor/name for operations
+        try:
+            cur = self.dbconn.cursor()
+            dbname = self.dbconn.database
+        except mariadb.Error:
+            # TODO: log and handle
+            sys.exit(501)
+        else:
+            # set cursor
+            self.mdb.cursor = cur
+            # set database
+            self.mdb.database = dbname
+
         return self.mdb.check_mariadb_data('activities', id=id)
     
     def check_activity_in_gpsactivities(self, id: int) -> bool:
@@ -103,7 +120,7 @@ class DatabaseExport():
         """
         Checks if a given activity ID is already present in the coordinates database table.
         """
-        return self.mdb.check_mariadb_data('coordinates', activitiy_id=id)
+        return self.mdb.check_mariadb_data('coordinates', activity_id=id)
     
     def write_activities(self, activity: dict) -> bool:
         """
